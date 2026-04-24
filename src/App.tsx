@@ -5,8 +5,8 @@
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import Papa from 'papaparse';
-import { Utensils, Beer, Info, ChevronDown } from 'lucide-react';
-import { motion, useScroll, useTransform } from 'motion/react';
+import { Utensils, Beer, Info, ChevronDown, X } from 'lucide-react';
+import { motion, useScroll, useTransform, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 
 // ============================================================================
@@ -119,6 +119,7 @@ export default function App() {
   
   const [activeTipologia, setActiveTipologia] = useState<'Food' | 'Drink'>('Food');
   const [activeCategoria, setActiveCategoria] = useState<string>('');
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -265,6 +266,16 @@ export default function App() {
     }
   };
 
+  // Blocca lo scroll del body quando il modal è aperto
+  useEffect(() => {
+    if (selectedItem) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [selectedItem]);
+
   return (
     <div className="min-h-screen flex flex-col bg-barone-bg">
       
@@ -381,7 +392,8 @@ export default function App() {
                 {itemsByCategory[cat]?.map((item, idx) => (
                   <div 
                     key={`${item.Nome}-${idx}`} 
-                    className="group flex items-center gap-4 bg-transparent transition-all duration-300"
+                    onClick={() => setSelectedItem(item)}
+                    className="group flex items-center gap-4 bg-transparent transition-all duration-300 cursor-pointer hover:bg-black/5 p-2 -m-2 rounded-xl"
                   >
                     {/* Image */}
                     <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 shrink-0 rounded-xl overflow-hidden bg-black/5 border border-black/10 shadow-sm">
@@ -437,6 +449,69 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Modal Prodotto */}
+      <AnimatePresence>
+        {selectedItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setSelectedItem(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-barone-bg w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative max-h-[90vh] flex flex-col border border-black/5"
+            >
+              {/* Pulsante di chiusura */}
+              <button
+                onClick={() => setSelectedItem(null)}
+                className="absolute top-4 right-4 z-10 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 backdrop-blur-md transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Immagine Header */}
+              <div className="w-full h-64 shrink-0 relative bg-black/5">
+                <img
+                  src={selectedItem['URL Immagine'] || getPlaceholderImage(selectedItem.Categoria, selectedItem.Tipologia)}
+                  alt={selectedItem.Nome}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+              </div>
+
+              {/* Contenuto */}
+              <div className="p-6 md:p-8 overflow-y-auto no-scrollbar flex-1 flex flex-col gap-4">
+                <div className="flex justify-between items-start gap-4">
+                  <h3 className="font-sans text-2xl md:text-3xl font-bold text-barone-text uppercase leading-tight">
+                    {selectedItem.Nome}
+                  </h3>
+                  <span className="font-semibold text-barone-red text-2xl whitespace-nowrap">
+                    € {selectedItem.Prezzo}
+                  </span>
+                </div>
+                
+                {selectedItem.Ingredienti && (
+                  <div className="mt-2">
+                    <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                      Ingredienti e Dettagli
+                    </h4>
+                    <p className="text-zinc-700 text-base leading-relaxed">
+                      {selectedItem.Ingredienti}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
