@@ -70,7 +70,7 @@ function CheersAnimation() {
       <div 
         className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center bg-contain bg-center bg-no-repeat"
         style={{ 
-          backgroundImage: "url('/Fioi.jpg')",
+          backgroundImage: `url('${import.meta.env.BASE_URL}Fioi.jpg')`,
           backgroundColor: "#ffffff" /* Modifica questo codice HEX con il colore esatto dello sfondo della tua immagine */
         }}
       >
@@ -79,7 +79,7 @@ function CheersAnimation() {
           style={{ x: leftX, rotate: leftRotate }}
         >
           <img 
-            src="/Boccale.png" 
+            src={`${import.meta.env.BASE_URL}Boccale.png`}
             alt="Beer Left" 
             className="h-[30vh] md:h-[80vh] w-auto max-w-none object-contain drop-shadow-2xl"
             style={{ transform: 'scaleX(-1)' }}
@@ -91,7 +91,7 @@ function CheersAnimation() {
           style={{ x: rightX, rotate: rightRotate }}
         >
           <img 
-            src="/Boccale.png" 
+            src={`${import.meta.env.BASE_URL}Boccale.png`}
             alt="Beer Right" 
             className="h-[30vh] md:h-[80vh] w-auto max-w-none object-contain drop-shadow-2xl"
           />
@@ -220,7 +220,7 @@ export default function App() {
   };
 
   const scrollToMenu = () => {
-    const menuElement = document.getElementById('menu-start');
+    const menuElement = document.getElementById('menu-anchor');
     if (!menuElement) return;
 
     const targetPosition = menuElement.getBoundingClientRect().top + window.scrollY;
@@ -258,7 +258,7 @@ export default function App() {
   };
 
   const scrollToMenuStartRapido = () => {
-    const menuElement = document.getElementById('menu-start');
+    const menuElement = document.getElementById('menu-anchor');
     if (menuElement) {
       const y = menuElement.getBoundingClientRect().top + window.scrollY;
       window.scrollTo({ top: y, behavior: 'smooth' });
@@ -271,7 +271,7 @@ export default function App() {
       {/* Hero Section */}
       <div 
         className="h-[100dvh] w-full bg-[#ef6c57] relative flex flex-col items-center justify-center bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/hero.jpg')" }}
+        style={{ backgroundImage: `url('${import.meta.env.BASE_URL}hero.jpg')` }}
       >
         {/* Indicatore di scroll */}
         <div 
@@ -285,6 +285,7 @@ export default function App() {
 
       <CheersAnimation />
 
+      <div id="menu-anchor" />
       {/* Sticky Header for Tipologia */}
       <div id="menu-start" className="sticky top-0 z-30 bg-barone-bg/95 backdrop-blur-md border-b border-black/5 shadow-sm h-[80px] flex items-center">
         <div className="w-full max-w-7xl mx-auto px-4 flex justify-between items-center gap-4">
@@ -432,7 +433,7 @@ export default function App() {
             <a href="#" className="hover:text-black transition-colors">Informativa sulla privacy</a>
           </div>
           <div className="text-xs text-zinc-500 mt-4 flex items-center gap-1">
-            Powered by <span className="font-semibold text-zinc-800">Rational Feelings</span>
+            Powered by <a href="https://s-zanardo.github.io/Landing-portfolio-page/" target="_blank" rel="noopener noreferrer" className="font-semibold text-zinc-800 hover:text-black transition-colors">Zanardo DEV</a>
           </div>
         </div>
       </footer>
