@@ -1,0 +1,6 @@
+{
+  "name": "Barone Rosso Menù",
+  "description": "Menù digitale dinamico per il Barone Rosso, integrato con Google Sheets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
