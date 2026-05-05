@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import Papa from 'papaparse';
-import { Utensils, Beer, Info, ChevronDown, X } from 'lucide-react';
+import { Utensils, Beer, Info, ChevronDown, X, Filter } from 'lucide-react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 
@@ -22,12 +22,13 @@ interface MenuItem {
   Ingredienti: string;
   Prezzo: string;
   'URL Immagine': string;
+  Allergeni?: string;
 }
 
 // Dati di fallback nel caso il link non sia ancora inserito o ci siano errori
 const FALLBACK_DATA: MenuItem[] = [
-  { Tipologia: 'Food', Categoria: 'Panini', Nome: 'London Bridge', Ingredienti: 'Roast beef, cheddar, cipolla caramellata, salsa BBQ', Prezzo: '8.50', 'URL Immagine': '' },
-  { Tipologia: 'Food', Categoria: 'Hamburger', Nome: 'Classic Burger', Ingredienti: 'Hamburger di manzo 200g, insalata, pomodoro, salsa burger', Prezzo: '9.00', 'URL Immagine': '' },
+  { Tipologia: 'Food', Categoria: 'Panini', Nome: 'London Bridge', Ingredienti: 'Roast beef, cheddar, cipolla caramellata, salsa BBQ', Prezzo: '8.50', 'URL Immagine': '', Allergeni: 'Glutine, Lattosio' },
+  { Tipologia: 'Food', Categoria: 'Hamburger', Nome: 'Classic Burger', Ingredienti: 'Hamburger di manzo 200g, insalata, pomodoro, salsa burger', Prezzo: '9.00', 'URL Immagine': '', Allergeni: 'Glutine' },
   { Tipologia: 'Food', Categoria: 'Piatti Carni', Nome: 'Ribs BBQ', Ingredienti: 'Costolette di maiale in salsa BBQ con patatine fritte', Prezzo: '14.00', 'URL Immagine': '' },
   { Tipologia: 'Food', Categoria: 'Piatti Carni', Nome: 'Galline in fuga', Ingredienti: 'Tagliata di pollo ruspante con rucola e grana', Prezzo: '12.00', 'URL Immagine': '' },
   { Tipologia: 'Drink', Categoria: 'Birre alla spina', Nome: 'Guinness', Ingredienti: 'Stout irlandese', Prezzo: '4.00 / 6.00', 'URL Immagine': '' },
@@ -120,6 +121,8 @@ export default function App() {
   const [activeTipologia, setActiveTipologia] = useState<'Food' | 'Drink'>('Food');
   const [activeCategoria, setActiveCategoria] = useState<string>('');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [excludedAllergens, setExcludedAllergens] = useState<string[]>([]);
+  const [isAllergensExpanded, setIsAllergensExpanded] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -163,25 +166,48 @@ export default function App() {
     fetchData();
   }, []);
 
-  // Deriva le categorie disponibili in base alla tipologia selezionata
-  const categorieDisponibili = useMemo(() => {
-    const filtered = items.filter(item => item.Tipologia?.toLowerCase() === activeTipologia.toLowerCase());
-    const cats = Array.from(new Set(filtered.map(item => item.Categoria))).filter(Boolean);
-    return cats;
+  // Estrae dinamicamente tutti gli allergeni presenti nella tipologia attiva
+  const allergeniDisponibili = useMemo(() => {
+    const allergeniSet = new Set<string>();
+    items.forEach(item => {
+      if (item.Tipologia?.toLowerCase() === activeTipologia.toLowerCase() && item.Allergeni) {
+        item.Allergeni.split(',').forEach(a => allergeniSet.add(a.trim().toLowerCase()));
+      }
+    });
+    return Array.from(allergeniSet).filter(Boolean).sort();
   }, [items, activeTipologia]);
 
-  // Raggruppa i prodotti per categoria
+  // Filtra i prodotti per Tipologia (Food/Drink) e per Allergeni esclusi
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      if (item.Tipologia?.toLowerCase() !== activeTipologia.toLowerCase()) return false;
+      
+      if (excludedAllergens.length > 0) {
+        const itemAllergens = item.Allergeni ? item.Allergeni.split(',').map(a => a.trim().toLowerCase()) : [];
+        const hasExcluded = excludedAllergens.some(ea => itemAllergens.includes(ea));
+        if (hasExcluded) return false;
+      }
+      return true;
+    });
+  }, [items, activeTipologia, excludedAllergens]);
+
+  // Deriva le categorie disponibili in base agli elementi filtrati
+  const categorieDisponibili = useMemo(() => {
+    const cats = Array.from(new Set(filteredItems.map(item => item.Categoria))).filter(Boolean);
+    return cats;
+  }, [filteredItems]);
+
+  // Raggruppa i prodotti per categoria in base agli elementi filtrati
   const itemsByCategory = useMemo(() => {
-    const filtered = items.filter(item => item.Tipologia?.toLowerCase() === activeTipologia.toLowerCase());
     const grouped: Record<string, MenuItem[]> = {};
-    filtered.forEach(item => {
+    filteredItems.forEach(item => {
       if (!grouped[item.Categoria]) {
         grouped[item.Categoria] = [];
       }
       grouped[item.Categoria].push(item);
     });
     return grouped;
-  }, [items, activeTipologia]);
+  }, [filteredItems]);
 
   // ScrollSpy logic
   useEffect(() => {
@@ -346,6 +372,61 @@ export default function App() {
         
         {/* Left Sidebar (Categories) - Visible on all screens */}
         <div className="w-[110px] sm:w-[160px] md:w-[220px] shrink-0 bg-barone-sidebar border-r border-black/5 sticky top-[80px] h-[calc(100vh-80px)] overflow-y-auto no-scrollbar py-4">
+          
+          {/* Sezione Filtri Allergeni */}
+          {allergeniDisponibili.length > 0 && (
+            <div className="px-3 sm:px-4 mb-6 border-b border-black/5 pb-2">
+              <button
+                onClick={() => setIsAllergensExpanded(!isAllergensExpanded)}
+                className="relative flex items-center justify-center w-full group py-2"
+              >
+                {excludedAllergens.length > 0 && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 bg-barone-red text-white text-[9px] px-1.5 py-0.5 rounded-full leading-none">
+                    {excludedAllergens.length}
+                  </span>
+                )}
+                
+                <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-barone-red" fill="currentColor" />
+                
+                <ChevronDown className={cn("absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-zinc-400 transition-transform duration-200", isAllergensExpanded ? "rotate-180" : "")} />
+              </button>
+              
+              <AnimatePresence>
+                {isAllergensExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex flex-col gap-1.5 pb-4 pt-1">
+                      {allergeniDisponibili.map(allergen => (
+                        <button
+                          key={allergen}
+                          onClick={() => {
+                            setExcludedAllergens(prev => 
+                              prev.includes(allergen) 
+                                ? prev.filter(a => a !== allergen) 
+                                : [...prev, allergen]
+                            );
+                          }}
+                          className={cn(
+                            "text-left text-[11px] sm:text-xs py-1.5 px-2 rounded-md transition-colors w-full break-words",
+                            excludedAllergens.includes(allergen) 
+                              ? "bg-red-100 text-red-700 font-medium border border-red-200" 
+                              : "bg-black/5 text-zinc-600 hover:bg-black/10 hover:text-black"
+                          )}
+                        >
+                          {excludedAllergens.includes(allergen) ? '🚫 ' : ''}{allergen.charAt(0).toUpperCase() + allergen.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
           <nav className="flex flex-col">
             {categorieDisponibili.map((cat) => (
               <button
@@ -424,6 +505,11 @@ export default function App() {
                           {item.Ingredienti}
                         </p>
                       )}
+                    {item.Allergeni && (
+                      <p className="text-barone-red text-[10px] sm:text-xs mt-1 font-medium line-clamp-1">
+                        Allergeni: {item.Allergeni}
+                      </p>
+                    )}
                     </div>
                   </div>
                 ))}
@@ -507,6 +593,17 @@ export default function App() {
                     </p>
                   </div>
                 )}
+              
+              {selectedItem.Allergeni && (
+                <div className="mt-2">
+                  <h4 className="text-xs font-bold text-barone-red uppercase tracking-wider mb-2">
+                    Allergeni
+                  </h4>
+                  <p className="text-zinc-700 text-base leading-relaxed">
+                    {selectedItem.Allergeni}
+                  </p>
+                </div>
+              )}
               </div>
             </motion.div>
           </motion.div>
